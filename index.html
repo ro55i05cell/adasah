@@ -13,14 +13,9 @@
 
   <!-- Header -->
   <header class="bg-blue-700 text-white shadow-md">
-    <div class="max-w-5xl mx-auto px-4 py-5 flex justify-between items-center">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight">CloudStock — Inventaris Barang</h1>
-        <p class="text-blue-200 text-sm">Aplikasi Berbasis Cloud (Vercel + Supabase)</p>
-      </div>
-      <span class="bg-blue-800 text-xs px-3 py-1.5 rounded-full border border-blue-500">
-        Status: <span id="status-koneksi" class="font-semibold text-emerald-300">Terhubung</span>
-      </span>
+    <div class="max-w-5xl mx-auto px-4 py-5">
+      <h1 class="text-2xl font-bold tracking-tight">CloudStock — Inventaris Barang</h1>
+      <p class="text-blue-200 text-sm">Aplikasi Berbasis Cloud (Vercel + Supabase)</p>
     </div>
   </header>
 
@@ -122,8 +117,6 @@
 
       if (error) {
         console.error('Error memuat data:', error);
-        document.getElementById('status-koneksi').textContent = 'Gagal Terhubung';
-        document.getElementById('status-koneksi').className = 'font-semibold text-red-300';
         return;
       }
 
