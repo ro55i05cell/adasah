@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Inventaris Barang Cloud</title>
+  <!-- Tailwind CSS CDN untuk tampilan modern -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-blue-700 text-white shadow-md">
+    <div class="max-w-5xl mx-auto px-4 py-5 flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">CloudStock — Inventaris Barang</h1>
+        <p class="text-blue-200 text-sm">Aplikasi Berbasis Cloud (Vercel + Supabase)</p>
+      </div>
+      <span class="bg-blue-800 text-xs px-3 py-1.5 rounded-full border border-blue-500">
+        Status: <span id="status-koneksi" class="font-semibold text-emerald-300">Terhubung</span>
+      </span>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+    
+    <!-- Form Tambah Barang (Fitur 1: Mencatat Data) -->
+    <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
+      <h2 class="text-lg font-bold mb-4 text-slate-700 border-b pb-2">Catat Barang Baru</h2>
+      <form id="form-inventaris" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Kode Barang</label>
+          <input type="text" id="kode_barang" placeholder="Contoh: BRG-001" required
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Nama Barang</label>
+          <input type="text" id="nama_barang" placeholder="Contoh: Proyektor Epson" required
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Kategori</label>
+          <select id="kategori" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="Elektronik">Elektronik</option>
+            <option value="Furnitur">Furnitur</option>
+            <option value="ATK">Alat Tulis Kantor (ATK)</option>
+            <option value="Jaringan">Perangkat Jaringan</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Jumlah</label>
+            <input type="number" id="jumlah" min="1" value="1" required
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Kondisi</label>
+            <select id="kondisi" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="Baik">Baik</option>
+              <option value="Rusak Ringan">Rusak Ringan</option>
+              <option value="Rusak Berat">Rusak Berat</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" id="btn-simpan"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition duration-150">
+          + Simpan ke Cloud
+        </button>
+      </form>
+    </section>
+
+    <!-- Daftar Barang (Fitur 2 & 3: Menampilkan & Menghapus Data) -->
+    <section class="md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b pb-3 gap-2">
+        <div>
+          <h2 class="text-lg font-bold text-slate-700">Daftar Inventaris Cloud</h2>
+          <p class="text-xs text-slate-500">Total Item Tercatat: <span id="total-item" class="font-bold text-blue-600">0</span></p>
+        </div>
+        <input type="text" id="cari-barang" placeholder="Cari nama atau kode..." 
+          class="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-56">
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-slate-600 text-xs uppercase border-b">
+              <th class="py-3 px-3">Kode</th>
+              <th class="py-3 px-3">Nama Barang</th>
+              <th class="py-3 px-3">Kategori</th>
+              <th class="py-3 px-3 text-center">Jml</th>
+              <th class="py-3 px-3">Kondisi</th>
+              <th class="py-3 px-3 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabel-inventaris" class="divide-y divide-slate-100 text-sm">
+            <tr>
+              <td colspan="6" class="py-6 text-center text-slate-400">Memuat data dari Supabase...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // 1. KONFIGURASI SUPABASE (Ganti dengan URL & Anon Key proyek Anda)
+    const SUPABASE_URL = 'https://jtmicszqyjbmxvpzugov.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_TCLvawjs5eUj1wqWuVe4SA_pr-dO_r_';
+    
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let dataInventarisCache = [];
+
+    // 2. FUNGSI MEMBACA & MENAMPILKAN DATA (READ)
+    async function muatDataInventaris() {
+      const { data, error } = await supabaseClient
+        .from('inventaris')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error memuat data:', error);
+        document.getElementById('status-koneksi').textContent = 'Gagal Terhubung';
+        document.getElementById('status-koneksi').className = 'font-semibold text-red-300';
+        return;
+      }
+
+      dataInventarisCache = data;
+      renderTabel(data);
+    }
+
+    function renderTabel(items) {
+      const tbody = document.getElementById('tabel-inventaris');
+      document.getElementById('total-item').textContent = items.length;
+
+      if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Belum ada data barang tercatat.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = items.map(item => {
+        let badgeWarna = 'bg-emerald-100 text-emerald-700';
+        if (item.kondisi === 'Rusak Ringan') badgeWarna = 'bg-amber-100 text-amber-700';
+        if (item.kondisi === 'Rusak Berat') badgeWarna = 'bg-red-100 text-red-700';
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-3 font-mono text-xs font-semibold text-slate-600">${item.kode_barang}</td>
+            <td class="py-3 px-3 font-medium text-slate-800">${item.nama_barang}</td>
+            <td class="py-3 px-3 text-slate-600">${item.kategori}</td>
+            <td class="py-3 px-3 text-center font-semibold">${item.jumlah}</td>
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium ${badgeWarna}">${item.kondisi}</span>
+            </td>
+            <td class="py-3 px-3 text-right">
+              <button onclick="hapusBarang(${item.id})" class="text-red-600 hover:text-red-800 text-xs font-semibold px-2 py-1 rounded hover:bg-red-50">
+                Hapus
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // 3. FUNGSI MENAMBAH DATA BARANG (CREATE)
+    document.getElementById('form-inventaris').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btn-simpan');
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+
+      const barangBaru = {
+        kode_barang: document.getElementById('kode_barang').value.trim(),
+        nama_barang: document.getElementById('nama_barang').value.trim(),
+        kategori: document.getElementById('kategori').value,
+        jumlah: parseInt(document.getElementById('jumlah').value),
+        kondisi: document.getElementById('kondisi').value
+      };
+
+      const { error } = await supabaseClient.from('inventaris').insert([barangBaru]);
+
+      btn.disabled = false;
+      btn.textContent = '+ Simpan ke Cloud';
+
+      if (error) {
+        alert('Gagal menyimpan data: ' + error.message);
+      } else {
+        document.getElementById('form-inventaris').reset();
+        muatDataInventaris();
+      }
+    });
+
+    // 4. FUNGSI MENGHAPUS DATA BARANG (DELETE)
+    async function hapusBarang(id) {
+      if (!confirm('Yakin ingin menghapus barang ini dari inventaris?')) return;
+
+      const { error } = await supabaseClient.from('inventaris').delete().eq('id', id);
+      if (error) {
+        alert('Gagal menghapus: ' + error.message);
+      } else {
+        muatDataInventaris();
+      }
+    }
+
+    // 5. FITUR PENCARIAN REAL-TIME (FILTER)
+    document.getElementById('cari-barang').addEventListener('input', (e) => {
+      const keyword = e.target.value.toLowerCase();
+      const hasilFilter = dataInventarisCache.filter(item => 
+        item.nama_barang.toLowerCase().includes(keyword) || 
+        item.kode_barang.toLowerCase().includes(keyword)
+      );
+      renderTabel(hasilFilter);
+    });
+
+    // Jalankan saat halaman pertama dibuka
+    muatDataInventaris();
+  </script>
+</body>
+</html>
